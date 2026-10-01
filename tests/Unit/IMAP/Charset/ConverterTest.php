@@ -14,6 +14,7 @@ use Horde_Mime_Part;
 use OCA\Mail\IMAP\Charset\Converter;
 use function fopen;
 use function fwrite;
+use function mb_check_encoding;
 use function mb_convert_encoding;
 
 class ConverterTest extends TestCase {
@@ -33,6 +34,20 @@ class ConverterTest extends TestCase {
 		$this->assertEquals($expected, $actual);
 		$isUtf8 = mb_check_encoding($actual, 'UTF-8');
 		$this->assertTrue($isUtf8);
+	}
+
+	public function testConvertSanitisesPartsThatLieAboutUtf8(): void {
+		$part = new Horde_Mime_Part();
+		$part->setType('text/plain');
+		$part->setCharset('UTF-8');
+		// Valid UTF-8 "café" followed by a stray windows-1252 byte, as produced by
+		// mail converted from legacy stores.
+		$part->setContents("caf\xc3\xa9\x8c");
+
+		$actual = $this->converter->convert($part);
+
+		$this->assertTrue(mb_check_encoding($actual, 'UTF-8'));
+		$this->assertStringContainsString('café', $actual);
 	}
 
 	public function dataProviderMimeParts(): array {

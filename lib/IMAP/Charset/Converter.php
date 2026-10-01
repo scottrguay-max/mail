@@ -11,6 +11,7 @@ namespace OCA\Mail\IMAP\Charset;
 
 use Horde_Mime_Part;
 use OCA\Mail\Exception\ServiceException;
+use OCA\Mail\Support\Utf8;
 use ValueError;
 use function in_array;
 use function is_string;
@@ -67,7 +68,10 @@ class Converter {
 		// data is utf-8 by default.
 		$charset = $p->getCharset();
 		if ($charset !== null && strtoupper($charset) === 'UTF-8') {
-			return $data;
+			// Trust but verify: parts that declare utf-8 can still hold invalid bytes,
+			// e.g. mail converted from legacy stores. Returning them unchecked breaks
+			// the insert and therefore the whole mailbox sync.
+			return Utf8::sanitize($data);
 		}
 
 		// The part specifies a charset

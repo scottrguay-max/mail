@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace OCA\Mail\Db;
 
+use OCA\Mail\Support\Utf8;
 use OCA\Mail\Account;
 use OCA\Mail\Address;
 use OCA\Mail\AddressList;
@@ -305,15 +306,15 @@ class MessageMapper extends QBMapper {
 
 			foreach ($messages as $message) {
 				$qb1->setParameter('uid', $message->getUid(), IQueryBuilder::PARAM_INT);
-				$qb1->setParameter('message_id', $message->getMessageId(), IQueryBuilder::PARAM_STR);
-				$inReplyTo = self::filterMessageIdLength($message->getInReplyTo());
+				$qb1->setParameter('message_id', Utf8::sanitize($message->getMessageId()), IQueryBuilder::PARAM_STR);
+				$inReplyTo = Utf8::sanitize(self::filterMessageIdLength($message->getInReplyTo()));
 				$qb1->setParameter('in_reply_to', $inReplyTo, $inReplyTo === null ? IQueryBuilder::PARAM_NULL : IQueryBuilder::PARAM_STR);
-				$references = $message->getReferences();
+				$references = Utf8::sanitize($message->getReferences());
 				$qb1->setParameter('references', $references, $references === null ? IQueryBuilder::PARAM_NULL : IQueryBuilder::PARAM_STR);
-				$threadRootId = self::filterMessageIdLength($message->getThreadRootId());
+				$threadRootId = Utf8::sanitize(self::filterMessageIdLength($message->getThreadRootId()));
 				$qb1->setParameter('thread_root_id', $threadRootId, $threadRootId === null ? IQueryBuilder::PARAM_NULL : IQueryBuilder::PARAM_STR);
 				$qb1->setParameter('mailbox_id', $message->getMailboxId(), IQueryBuilder::PARAM_INT);
-				$qb1->setParameter('subject', $message->getSubject(), IQueryBuilder::PARAM_STR);
+				$qb1->setParameter('subject', Utf8::sanitize($message->getSubject()), IQueryBuilder::PARAM_STR);
 				$qb1->setParameter('sent_at', $message->getSentAt(), IQueryBuilder::PARAM_INT);
 				$qb1->setParameter('flag_answered', $message->getFlagAnswered(), IQueryBuilder::PARAM_BOOL);
 				$qb1->setParameter('flag_deleted', $message->getFlagDeleted(), IQueryBuilder::PARAM_BOOL);
@@ -343,8 +344,8 @@ class MessageMapper extends QBMapper {
 
 						$qb2->setParameter('message_id', $message->getId(), IQueryBuilder::PARAM_INT);
 						$qb2->setParameter('type', $type, IQueryBuilder::PARAM_INT);
-						$qb2->setParameter('label', mb_strcut($recipient->getLabel(), 0, 255), IQueryBuilder::PARAM_STR);
-						$qb2->setParameter('email', mb_strcut($recipient->getEmail(), 0, 255), IQueryBuilder::PARAM_STR);
+						$qb2->setParameter('label', Utf8::sanitize(mb_strcut($recipient->getLabel(), 0, 255)), IQueryBuilder::PARAM_STR);
+						$qb2->setParameter('email', Utf8::sanitize(mb_strcut($recipient->getEmail(), 0, 255)), IQueryBuilder::PARAM_STR);
 
 						$qb2->executeStatement();
 					}
@@ -608,7 +609,7 @@ class MessageMapper extends QBMapper {
 				if ($message->getPreviewText() !== null) {
 					$convertedText = mb_convert_encoding($message->getPreviewText(), 'UTF-8', 'UTF-8');
 					//converting the spaces is necessary for ltrim to work
-					$previewText = mb_strcut(ltrim(preg_replace('/\s/u', ' ', $convertedText)), 0, 255);
+					$previewText = Utf8::sanitize(mb_strcut(ltrim(preg_replace('/\s/u', ' ', $convertedText)), 0, 255));
 
 					// Make sure modifications are visible when these objects are used right away
 					$message->setPreviewText($previewText);
